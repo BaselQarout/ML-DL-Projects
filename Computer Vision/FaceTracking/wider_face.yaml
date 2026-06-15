@@ -1,0 +1,6 @@
+path: Data # Path relative to where you run the script (root)
+train: train/images
+val: val/images
+
+names:
+  0: face

@@ -1,0 +1,23 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Conda/Virtual Environments
+.vscode/
+.venv/
+venv/
+env/
+ai/
+
+# Datasets and Large Media Files (Do not upload to GitHub)
+Data/
+*.MOV
+*.mov
+*.mp4
+
+# Model Weights and Training Reports
+training/runs/
+my_face_model/
+runs/
+*.pt
