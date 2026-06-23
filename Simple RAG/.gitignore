@@ -1,0 +1,12 @@
+# === Python Caches and Bytecode ===
+__pycache__/
+
+
+# === Virtual Environments ===
+.vscode/
+.venv/
+venv/
+env/
+
+# === Data ===
+Data/
