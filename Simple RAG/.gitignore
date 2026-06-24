@@ -10,3 +10,6 @@ env/
 
 # === Data ===
 Data/
+
+# === files ===
+main.py

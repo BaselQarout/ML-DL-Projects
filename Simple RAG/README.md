@@ -1,44 +1,43 @@
 # Simple Retrieval-Augmented Generation (RAG) Pipeline
 
-This project implements a fully offline, modular **Retrieval-Augmented Generation (RAG)** pipeline using a custom architecture. The system ingests local multi-page PDF documents, converts them into semantic dense vector representations, indexes them via a fast similarity engine, and injects relevant context into a localized Large Language Model (LLM) to deliver factually grounded responses.
+This project implements a fully offline, decoupled **Retrieval-Augmented Generation (RAG)** pipeline. The system ingests local multi-page PDF documents, converts them into semantic dense vector representations, and saves them directly to your hard drive. A persistent, real-time **Streamlit** chat interface loads these pre-calculated files to instantly query a localized Large Language Model (LLM) for factually grounded responses without repeating the heavy parsing phase.
 
 ---
 
 ## ⚙️ Core Technical Pipeline
 
-The system splits the retrieval and generation workload into decoupled scripts managed under a core source directory:
+The workload is split into two distinct execution layers: **Data Ingestion (Run Once)** and **Interactive Chat UI (Run Anytime)**.
 
-### 1. Document Ingestion & Embeddings (`src/ingestion.py`)
+### 1. Document Ingestion & Persistent Storage (`ingest_and_save.py`)
 
-- **PDF Extraction:** Uses `pypdf.PdfReader` to parse and extract unstructured text from multi-page PDF documents sitting in your local data directory.
-- **Sliding Window Chunking:** Breaks down the extracted corpus into precise semantic segments using a sliding window technique (`chunk_size=500` characters with an `overlap=50` character threshold) to maintain textual context across boundaries.
+- **PDF Extraction & Sliding Window Chunking:** Uses `pypdf.PdfReader` to extract unstructured text from your source documents. It breaks the text into precise segments using a sliding window technique (`chunk_size=500` characters with an `overlap=50` character threshold) in `src/ingestion.py` to maintain contextual continuity.
 - **Vector Transformation:** Leverages `sentence-transformers` to load the efficient `all-MiniLM-L6-v2` model, transforming each text chunk into a dense **384-dimensional embedding vector**.
+- **Binary Disk Compilation:** Instead of holding the mathematical coordinates in temporary RAM, the index is built using `faiss.IndexFlatL2` and baked onto your local disk inside the `storage/` folder as `faiss_index.bin`. Raw text segments are serialized cleanly using Python's `pickle` library into `chunks.pkl`.
 
-### 2. Semantic Indexing & Retrieval (`src/retrieval.py`)
+### 2. Semantic Indexing & Chat UI Engine (`app.py`)
 
-- **Vector Database Setup:** Builds an in-memory `faiss.IndexFlatL2` index to measure exact Euclidean (L2) distances across the 384-dimensional space.
-- **Top-K Search Optimization:** Translates incoming runtime user query strings into embeddings using the same encoder model, querying the FAISS index to extract the top-$K$ closest matching textual contexts (`k=2`).
-
-### 3. Orchestration & Generative Prompting (`main.py`)
-
-- **SSL Certificate Routing:** Configures pathing environments with `certifi` to ensure local system verification routes safely.
-- **Prompt Augmentation:** Automatically wraps the recovered context passages and the original question into an explicit guardrailed instruction set:
-  > _"Use the following context to answer the user's question. If you do not know the answer based on the context, say that you don't know."_
-- **LLM Generation Backend:** Dispatches the augmented instruction to a local `ollama` deployment (running models like `llama3`) to synthesize an accurate response.
+- **Resource Caching Optimization:** Utilizing Streamlit's `@st.cache_resource`, the pre-compiled FAISS vector index map and text chunks are loaded from your hard drive into your RAM exactly **once** on application boot, keeping the chatbot interface extremely fast and lightweight.
+- **Top-K Search Retrieval:** Incoming user queries are instantly translated into search embeddings, scanning the pre-loaded FAISS index via `src/retrieval.py` to pull the top-$K$ closest matching textual contexts ($k=2$).
+- **Session State History:** Manages conversational history dynamically via `st.session_state` to render sequential user and assistant chat bubble containers without losing track of previous statements during page refreshes.
+- **LLM Generation Backend:** Automatically wraps the retrieved context passages inside a strict guardrail prompt, dispatching it to a local `ollama` deployment running `llama3` to synthesize an accurate response.
 
 ---
 
 ## 📂 Project Architecture
 
 ```text
-Simple_RAG/
-├── main.py                  # Orchestration script (Ingestion -> Indexing -> LLM Prompting)
+Simple RAG/
+├── ingest_and_save.py       # One-time script to parse PDFs and compile/save binary database files
+├── app.py                   # Streamlit Web UI application orchestrating the interactive chatbot loop
 ├── requirements.txt         # Required system libraries
 │
 ├── src/                     # Core production source module
-│   ├── ingestion.py         # PDF text extraction and sentence-transformer vector generation
-│   └── retrieval.py         # FAISS index initialization and semantic similarity search
+│   ├── __init__.py          # Initializes python module package structures
+│   ├── ingestion.py         # PDF text extraction and sliding window segmentation logic
+│   └── retrieval.py         # FAISS mathematical similarity search and top-k mapping
 │
-└── data/                    # Storage directory for source documentation
-    └── target_files.pdf     # Place your custom background PDFs here
+├── data/                    # Storage directory for initial source documentation (e.g., PDFs)
+├── storage/                 # Compiled binary database folder (Autogenerated on Ingestion)
+│   ├── faiss_index.bin      # Pre-calculated 384-dimensional continuous coordinate maps
+│   └── chunks.pkl           # Pickled string arrays matching the index vector locations
 ```
