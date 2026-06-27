@@ -18,7 +18,7 @@ The model architecture was optimized using a tailored extraction from the benchm
 
 ### 📈 Optimal Inference Configuration
 
-By analyzing the generated harmonic mean evaluation curves (`BoxF1_curve.png`), the absolute performance sweet spot for this model is achieved at a confidence threshold of **`conf=0.31`**. This setting provides the ultimate user experience, keeping tracking fluid and steady.
+By analyzing the generated harmonic mean evaluation curves (`BoxF1_curve.png`), the absolute performance sweet spot for this model is achieved at a confidence threshold of **`conf=0.28`**. This setting provides the ultimate user experience, keeping tracking fluid and steady.
 
 ---
 
